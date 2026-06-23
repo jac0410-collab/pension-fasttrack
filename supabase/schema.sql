@@ -54,8 +54,8 @@ create table if not exists cases (
   delay_flag          boolean not null default false,
   settled             boolean not null default false,
   note                text,
-  hana_branch         text not null,
-  hana_manager        text not null,
+  hana_branch         text not null default '-',
+  hana_manager        text not null default '-',
   created_by          uuid references auth.users(id),
   sent_at             timestamptz not null default now(),
   assigned_at         timestamptz,
@@ -93,62 +93,49 @@ returns text as $$
   );
 $$ language sql security definer;
 
--- cases RLS
-create policy "hana_branch: 본인 건 read"
-  on cases for select
-  using (
-    get_user_role() = 'hana_branch'
-    and created_by = auth.uid()
-  );
-
-create policy "hana_branch: insert"
+-- cases RLS: 비로그인 사용자도 신청·조회 가능
+create policy "public: 신청 insert"
   on cases for insert
-  with check (get_user_role() = 'hana_branch');
+  to anon, authenticated
+  with check (true);
 
-create policy "kcaa_admin: 전체 read/write"
-  on cases for all
-  using (get_user_role() = 'kcaa_admin');
-
-create policy "kcaa_duty: 배정 건 read/write"
-  on cases for all
-  using (
-    get_user_role() = 'kcaa_duty'
-    and assigned_lawyer_id = auth.uid()
-  );
-
-create policy "hana_hq: 전체 read"
+create policy "public: 진행현황 조회"
   on cases for select
-  using (get_user_role() = 'hana_hq');
+  to anon, authenticated
+  using (true);
 
--- public track: 사업자번호로 단건 조회 허용
-create policy "public: track 조회"
-  on cases for select
+create policy "public: 케이스 update (관리자용)"
+  on cases for update
+  to authenticated
   using (true);
 
 -- lawyers RLS
-create policy "kcaa_admin: lawyers 전체"
-  on lawyers for all
-  using (get_user_role() = 'kcaa_admin');
-
-create policy "kcaa_duty: lawyers read"
+create policy "lawyers: authenticated read"
   on lawyers for select
-  using (get_user_role() = 'kcaa_duty');
+  to authenticated
+  using (true);
 
 -- settlements RLS
-create policy "kcaa_admin: settlements 전체"
+create policy "settlements: authenticated all"
   on settlements for all
-  using (get_user_role() = 'kcaa_admin');
-
-create policy "hana_hq: settlements read/update"
-  on settlements for all
-  using (get_user_role() = 'hana_hq');
+  to authenticated
+  using (true);
 
 -- =============================================
--- Storage 버킷 생성 (Supabase 대시보드에서 수동 생성 권장)
+-- Storage 정책 (documents 버킷)
 -- =============================================
--- 버킷명: documents
--- Public: false
--- 폴더 구조: {case_id}/report.pdf, regulation.pdf, confirmation.pdf, consent.pdf, biz_reg.pdf
+
+-- anon 사용자도 파일 업로드 가능
+create policy "public: documents upload"
+  on storage.objects for insert
+  to anon, authenticated
+  with check (bucket_id = 'documents1');
+
+-- anon 사용자도 파일 조회 가능
+create policy "public: documents read"
+  on storage.objects for select
+  to anon, authenticated
+  using (bucket_id = 'documents1');
 
 -- =============================================
 -- 샘플 노무사 데이터

@@ -71,7 +71,7 @@ export default function ApplyPage() {
 
     try {
       const { error } = await supabase.storage
-        .from('documents')
+        .from('documents1')
         .upload(path, file, { upsert: true });
       if (error) throw error;
 

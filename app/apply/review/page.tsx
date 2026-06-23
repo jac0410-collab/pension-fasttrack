@@ -41,7 +41,7 @@ export default function ApplyReviewPage() {
 
       const upload = async (blob: Blob, path: string) => {
         const { error } = await supabase.storage
-          .from('documents')
+          .from('documents1')
           .upload(path, blob, { contentType: 'application/pdf', upsert: true });
         if (error) throw error;
         return path;
