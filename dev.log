@@ -1,0 +1,41 @@
+
+> pension-fasttrack@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.40.44:3000
+- Environments: .env.local
+✓ Ready in 586ms
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\biztf\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\biztf\Desktop\pension-fasttrack\package-lock.json
+
+
+⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.40.44:3000
+- Environments: .env.local
+✓ Ready in 496ms
+
+ GET /login 200 in 99ms (next.js: 8ms, proxy.ts: 7ms, application-code: 83ms)
+✓ Compiled in 220.5s
+ GET / 200 in 879ms (next.js: 620ms, proxy.ts: 68ms, application-code: 191ms)
+ GET /assist 200 in 2.7s (next.js: 2.6s, proxy.ts: 7ms, application-code: 37ms)
+ GET /apply 200 in 776ms (next.js: 739ms, proxy.ts: 6ms, application-code: 31ms)
+ GET /track 200 in 526ms (next.js: 487ms, proxy.ts: 5ms, application-code: 34ms)
+⚠ Fast Refresh had to perform a full reload when ./app/apply/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET / 200 in 473ms (next.js: 101ms, proxy.ts: 76ms, application-code: 295ms)
+ GET / 200 in 217ms (next.js: 113ms, proxy.ts: 45ms, application-code: 59ms)
+ GET / 200 in 483ms (next.js: 13ms, proxy.ts: 171ms, application-code: 300ms)
+ GET /apply 200 in 135ms (next.js: 83ms, proxy.ts: 7ms, application-code: 45ms)
+ GET /apply 200 in 46ms (next.js: 7ms, proxy.ts: 7ms, application-code: 32ms)
+ GET /assist 200 in 46ms (next.js: 15ms, proxy.ts: 5ms, application-code: 26ms)
+✓ Compiled in 152.6s
+ GET /apply 200 in 46ms (next.js: 7ms, proxy.ts: 7ms, application-code: 31ms)
+ GET /assist 200 in 688ms (next.js: 296ms, proxy.ts: 5ms, application-code: 387ms)
+ GET /track 200 in 60ms (next.js: 23ms, proxy.ts: 6ms, application-code: 30ms)
