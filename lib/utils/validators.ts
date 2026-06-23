@@ -35,8 +35,8 @@ export const caseFormSchema = z.object({
   signature_data:    z.string().optional(),
   doc_consent_path:  z.string().optional(),
   doc_biz_reg_path:  z.string().optional(),
-  hana_branch:       z.string().min(1, '지점명을 입력해주세요'),
-  hana_manager:      z.string().min(1, '담당 직원명을 입력해주세요'),
+  hana_branch:       z.string().optional(),
+  hana_manager:      z.string().optional(),
   worker_rep_consent:z.boolean(),
   note:              z.string().optional(),
 });

@@ -59,15 +59,6 @@ export function Section1Business({ form }: Props) {
         </Field>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="하나은행 지점명 *" error={errors.hana_branch?.message}>
-          <Input placeholder="예: 강남지점" {...register('hana_branch')} />
-        </Field>
-        <Field label="담당 직원명 *" error={errors.hana_manager?.message}>
-          <Input placeholder="담당자 이름" {...register('hana_manager')} />
-        </Field>
-      </div>
-
       {/* 사업자 구분 */}
       <div>
         <Label className="text-sm font-medium">사업자 구분 *</Label>

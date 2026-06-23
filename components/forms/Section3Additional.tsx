@@ -17,8 +17,8 @@ interface Props {
 type FileKey = 'doc_consent_path' | 'doc_biz_reg_path';
 
 const FILE_FIELDS: { key: FileKey; label: string; accept: string }[] = [
-  { key: 'doc_consent_path', label: '근로자대표 동의서 *', accept: 'application/pdf,image/*' },
-  { key: 'doc_biz_reg_path', label: '사업자등록증 *',     accept: 'application/pdf,image/*' },
+  { key: 'doc_consent_path', label: '근로자대표 동의서', accept: 'application/pdf,image/*' },
+  { key: 'doc_biz_reg_path', label: '사업자등록증',     accept: 'application/pdf,image/*' },
 ];
 
 export function Section3Additional({ form, caseId }: Props) {
@@ -75,7 +75,7 @@ export function Section3Additional({ form, caseId }: Props) {
 
       {/* 첨부파일 업로드 */}
       <div className="space-y-4 pt-2">
-        <h4 className="font-medium text-gray-800">필수 첨부파일</h4>
+        <h4 className="font-medium text-gray-800">첨부파일 <span className="text-xs font-normal text-gray-400">(선택)</span></h4>
         {FILE_FIELDS.map(({ key, label, accept }) => {
           const uploaded = !!watch(key);
           const isUploading = uploading[key];
