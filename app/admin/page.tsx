@@ -3,38 +3,43 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { Home, Lock, FileText, Clock, CheckCircle, TrendingUp, Building2 } from 'lucide-react';
-import type { Case } from '@/types';
+import { Home, Lock, FileText, Clock, CheckCircle, TrendingUp, Building2, RefreshCw } from 'lucide-react';
+import type { SheetRow } from '@/app/api/sheet-data/route';
 
 const ADMIN_PASSWORD = '6293';
+const PRICE_PER_CASE = 30000;
 
-function formatKRW(amount: number) {
-  return amount.toLocaleString('ko-KR') + '원';
+function formatKRW(n: number) {
+  return n.toLocaleString('ko-KR') + '원';
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+function formatDate(val: string) {
+  if (!val) return '-';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
-function getYearMonth(iso: string) {
-  const d = new Date(iso);
+function getYearMonth(val: string) {
+  if (!val) return '미상';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val.slice(0, 7);
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
 }
 
-function statusLabel(status: string) {
-  const map: Record<string, { label: string; color: string }> = {
-    '검토대기':  { label: '검토대기',          color: 'bg-blue-100 text-blue-700' },
-    '팩스제출':  { label: '신청서접수/FAX발송', color: 'bg-purple-100 text-purple-700' },
-    '신고완료':  { label: '노동지청 심사',      color: 'bg-green-100 text-green-700' },
-    '반려':      { label: '반려',               color: 'bg-red-100 text-red-700' },
+function statusBadge(status: string) {
+  const map: Record<string, string> = {
+    '검토대기':          'bg-blue-100 text-blue-700',
+    '신청서 접수/FAX발송': 'bg-purple-100 text-purple-700',
+    '노동지청 심사':      'bg-green-100 text-green-700',
+    '반려':              'bg-red-100 text-red-700',
   };
-  return map[status] ?? { label: status, color: 'bg-gray-100 text-gray-600' };
+  return map[status] ?? 'bg-gray-100 text-gray-600';
 }
 
-// ── 비밀번호 화면 ────────────────────────────────────
+// ── 비밀번호 화면 ──────────────────────────────────────────
 function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
-  const [pw, setPw] = useState('');
+  const [pw, setPw]       = useState('');
   const [error, setError] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
@@ -83,37 +88,46 @@ function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-// ── 메인 관리자 페이지 ────────────────────────────────
+// ── 메인 관리자 페이지 ─────────────────────────────────────
 export default function AdminPage() {
-  const [auth, setAuth] = useState(false);
-  const [cases, setCases] = useState<Case[]>([]);
+  const [auth, setAuth]     = useState(false);
+  const [rows, setRows]     = useState<SheetRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState('');
+
+  async function loadData() {
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch('/api/sheet-data', { cache: 'no-store' });
+      const json = await res.json();
+      if (json.ok) {
+        setRows(json.data ?? []);
+      } else {
+        setError(json.error ?? '데이터 로드 실패');
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '네트워크 오류');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    if (!auth) return;
-    setLoading(true);
-    const supabase = createClient();
-    supabase
-      .from('cases')
-      .select('*')
-      .order('sent_at', { ascending: false })
-      .then(({ data }) => {
-        setCases((data as Case[]) ?? []);
-        setLoading(false);
-      });
+    if (auth) loadData();
   }, [auth]);
 
   if (!auth) return <PasswordGate onSuccess={() => setAuth(true)} />;
 
   // ── 대시보드 통계
-  const total    = cases.length;
-  const pending  = cases.filter((c) => c.status === '검토대기').length;
-  const done     = cases.filter((c) => c.status === '신고완료').length;
+  const total   = rows.length;
+  const pending = rows.filter((r) => r.status === '검토대기').length;
+  const done    = rows.filter((r) => r.status === '노동지청 심사' || r.status === '신고완료').length;
 
   // ── 월별 정산
   const monthMap: Record<string, number> = {};
-  cases.forEach((c) => {
-    const ym = getYearMonth(c.sent_at);
+  rows.forEach((r) => {
+    const ym = getYearMonth(r.sent_at);
     monthMap[ym] = (monthMap[ym] ?? 0) + 1;
   });
   const settlements = Object.entries(monthMap).sort((a, b) => b[0].localeCompare(a[0]));
@@ -127,47 +141,58 @@ export default function AdminPage() {
         </Link>
         <span className="text-white/30">/</span>
         <span className="text-white text-sm font-medium">마스터 관리자 페이지</span>
+        <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
+          <span>구글 스프레드시트 연동</span>
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="flex items-center gap-1 text-white/60 hover:text-white transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            새로고침
+          </button>
+        </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        <h1 className="text-2xl font-bold text-[#0D2433]">마스터 관리자 페이지</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-[#0D2433]">마스터 관리자 페이지</h1>
+          <span className="text-xs text-gray-400">※ 구글 스프레드시트 데이터 기준</span>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+            {error} — Apps Script 배포 설정을 확인해주세요.
+          </div>
+        )}
 
         {/* ── 총괄 대시보드 */}
         <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">총괄 대시보드</h2>
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600" />
+            {[
+              { icon: FileText, label: '전체 접수 건수', value: total,   color: 'bg-blue-50',   iconColor: 'text-blue-600',  textColor: 'text-[#0D2433]' },
+              { icon: Clock,    label: '검토 대기 건수', value: pending, color: 'bg-amber-50',  iconColor: 'text-amber-500', textColor: 'text-amber-500' },
+              { icon: CheckCircle, label: '완료 건수',  value: done,    color: 'bg-green-50',  iconColor: 'text-green-500', textColor: 'text-green-600' },
+            ].map(({ icon: Icon, label, value, color, iconColor, textColor }) => (
+              <div key={label} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`w-9 h-9 ${color} rounded-lg flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${iconColor}`} />
+                  </div>
+                  <span className="text-sm text-gray-500">{label}</span>
                 </div>
-                <span className="text-sm text-gray-500">전체 접수 건수</span>
+                <p className={`text-3xl font-bold ${textColor}`}>
+                  {loading ? <span className="text-gray-300">-</span> : value}
+                  <span className="text-base font-normal text-gray-400 ml-1">건</span>
+                </p>
               </div>
-              <p className="text-3xl font-bold text-[#0D2433]">{loading ? '-' : total}<span className="text-base font-normal text-gray-400 ml-1">건</span></p>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-amber-500" />
-                </div>
-                <span className="text-sm text-gray-500">검토 대기 건수</span>
-              </div>
-              <p className="text-3xl font-bold text-amber-500">{loading ? '-' : pending}<span className="text-base font-normal text-gray-400 ml-1">건</span></p>
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 bg-green-50 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                </div>
-                <span className="text-sm text-gray-500">완료 건수</span>
-              </div>
-              <p className="text-3xl font-bold text-green-600">{loading ? '-' : done}<span className="text-base font-normal text-gray-400 ml-1">건</span></p>
-            </div>
+            ))}
           </div>
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ── 사업장 데이터 테이블 */}
+          {/* ── 사업장 접수 리스트 */}
           <section className="lg:col-span-2">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
               <Building2 className="w-4 h-4" /> 사업장 접수 리스트
@@ -175,7 +200,7 @@ export default function AdminPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               {loading ? (
                 <div className="p-8 text-center text-gray-400 text-sm">불러오는 중...</div>
-              ) : cases.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <div className="p-8 text-center text-gray-400 text-sm">접수된 건이 없습니다.</div>
               ) : (
                 <div className="overflow-x-auto">
@@ -188,21 +213,20 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {cases.map((c) => {
-                        const { label, color } = statusLabel(c.status);
-                        return (
-                          <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3 font-mono text-xs text-gray-400">{c.id}</td>
-                            <td className="px-4 py-3 font-medium text-[#0D2433]">{c.company_name}</td>
-                            <td className="px-4 py-3 text-gray-600">{c.ceo_name}</td>
-                            <td className="px-4 py-3 text-gray-500">{c.ceo_phone ?? '-'}</td>
-                            <td className="px-4 py-3 text-gray-500">{formatDate(c.sent_at)}</td>
-                            <td className="px-4 py-3">
-                              <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${color}`}>{label}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {rows.map((r) => (
+                        <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.id}</td>
+                          <td className="px-4 py-3 font-medium text-[#0D2433]">{r.company_name}</td>
+                          <td className="px-4 py-3 text-gray-600">{r.ceo_name}</td>
+                          <td className="px-4 py-3 text-gray-500">{r.ceo_phone || '-'}</td>
+                          <td className="px-4 py-3 text-gray-500">{formatDate(r.sent_at)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(r.status)}`}>
+                              {r.status || '-'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -223,7 +247,7 @@ export default function AdminPage() {
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">월</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">처리 건수</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">건수</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">정산 예상금액</th>
                     </tr>
                   </thead>
@@ -233,21 +257,20 @@ export default function AdminPage() {
                         <td className="px-4 py-3 text-gray-700 font-medium">{month}</td>
                         <td className="px-4 py-3 text-right text-gray-600">{count}건</td>
                         <td className="px-4 py-3 text-right font-semibold text-[#0D2433]">
-                          {formatKRW(count * 30000)}
+                          {formatKRW(count * PRICE_PER_CASE)}
                         </td>
                       </tr>
                     ))}
-                    {/* 합계 */}
                     <tr className="bg-[#0D2433]/5 font-bold">
                       <td className="px-4 py-3 text-[#0D2433]">합계</td>
                       <td className="px-4 py-3 text-right text-[#0D2433]">{total}건</td>
-                      <td className="px-4 py-3 text-right text-[#00A693]">{formatKRW(total * 30000)}</td>
+                      <td className="px-4 py-3 text-right text-[#00A693]">{formatKRW(total * PRICE_PER_CASE)}</td>
                     </tr>
                   </tbody>
                 </table>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-2 text-right">건당 단가 30,000원 기준</p>
+            <p className="text-xs text-gray-400 mt-2 text-right">건당 단가 {formatKRW(PRICE_PER_CASE)} 기준</p>
           </section>
         </div>
       </main>
