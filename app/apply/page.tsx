@@ -134,7 +134,7 @@ export default function ApplyPage() {
       });
       if (error) throw error;
 
-      // 구글 스프레드시트 전송 (실패해도 신청은 완료)
+      // 구글 스프레드시트 + 드라이브 전송
       fetch('/api/notify-sheets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,7 +150,10 @@ export default function ApplyPage() {
           status:           '검토대기',
           sent_at:          new Date().toLocaleString('ko-KR'),
         }),
-      }).catch(() => {/* 스프레드시트 오류는 무시 */});
+      })
+        .then((r) => r.json())
+        .then((r) => { if (!r.ok) toast.warning('구글 연동 오류: ' + (r.error ?? '')); })
+        .catch((err) => toast.warning('구글 연동 실패: ' + err.message));
 
       setCaseId(id);
       toast.success('신청이 접수되었습니다!');
