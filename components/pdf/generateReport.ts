@@ -1,6 +1,7 @@
 'use client';
 import type { Case } from '@/types';
 import { formatDate } from '@/lib/utils/formatters';
+import { renderHtmlToPdf } from './renderHtmlToPdf';
 
 function buildReportHTML(data: Case): string {
   const typeCheck = (t: string) =>
@@ -142,54 +143,5 @@ function buildReportHTML(data: Case): string {
 }
 
 export async function generateReportPDF(data: Case): Promise<Blob> {
-  const { jsPDF } = await import('jspdf');
-  const html2canvas = (await import('html2canvas')).default;
-
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = '794px';
-  container.innerHTML = buildReportHTML(data);
-  document.body.appendChild(container);
-
-  // Google Fonts 로딩 대기
-  await document.fonts.ready;
-  await new Promise((r) => setTimeout(r, 500));
-
-  const canvas = await html2canvas(container, {
-    scale: 2,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#ffffff',
-    width: 794,
-  });
-
-  document.body.removeChild(container);
-
-  const imgData = canvas.toDataURL('image/png');
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const imgH = (canvas.height / canvas.width) * pageW;
-
-  if (imgH <= pageH) {
-    doc.addImage(imgData, 'PNG', 0, 0, pageW, imgH);
-  } else {
-    // 여러 페이지로 분할
-    let yOffset = 0;
-    while (yOffset < canvas.height) {
-      const sliceH = Math.min((pageH / pageW) * canvas.width, canvas.height - yOffset);
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceH;
-      const ctx = sliceCanvas.getContext('2d')!;
-      ctx.drawImage(canvas, 0, -yOffset);
-      doc.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, (sliceH / canvas.width) * pageW);
-      yOffset += sliceH;
-      if (yOffset < canvas.height) doc.addPage();
-    }
-  }
-
-  return doc.output('blob');
+  return renderHtmlToPdf(buildReportHTML(data));
 }

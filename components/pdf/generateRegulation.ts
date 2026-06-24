@@ -1,6 +1,7 @@
 'use client';
 import type { Case } from '@/types';
 import { generateRegulation } from '@/lib/regulation/generator';
+import { renderHtmlToPdf } from './renderHtmlToPdf';
 
 function buildRegulationHTML(text: string): string {
   const lines = text.split('\n');
@@ -53,9 +54,6 @@ ${html}
 }
 
 export async function generateRegulationPDF(data: Case): Promise<Blob> {
-  const { jsPDF } = await import('jspdf');
-  const html2canvas = (await import('html2canvas')).default;
-
   const text = generateRegulation({
     company_name:       data.company_name,
     biz_reg_no:         data.biz_reg_no,
@@ -89,55 +87,5 @@ export async function generateRegulationPDF(data: Case): Promise<Blob> {
     note:               data.note,
   });
 
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = '794px';
-  container.innerHTML = buildRegulationHTML(text);
-  document.body.appendChild(container);
-
-  await document.fonts.ready;
-  await new Promise((r) => setTimeout(r, 600));
-
-  const canvas = await html2canvas(container, {
-    scale: 2,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#ffffff',
-    width: 794,
-  });
-
-  document.body.removeChild(container);
-
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const pxPerMm = canvas.width / pageW;
-  const pageHeightPx = pageH * pxPerMm;
-
-  let yOffset = 0;
-  let firstPage = true;
-
-  while (yOffset < canvas.height) {
-    if (!firstPage) doc.addPage();
-    firstPage = false;
-
-    const sliceH = Math.min(pageHeightPx, canvas.height - yOffset);
-    const sliceCanvas = document.createElement('canvas');
-    sliceCanvas.width = canvas.width;
-    sliceCanvas.height = sliceH;
-    const ctx = sliceCanvas.getContext('2d')!;
-    ctx.drawImage(canvas, 0, -yOffset);
-
-    doc.addImage(
-      sliceCanvas.toDataURL('image/png'),
-      'PNG', 0, 0,
-      pageW,
-      (sliceH / pxPerMm),
-    );
-    yOffset += sliceH;
-  }
-
-  return doc.output('blob');
+  return renderHtmlToPdf(buildRegulationHTML(text));
 }
