@@ -12,6 +12,8 @@ import { CheckCircle, Circle, Search, Clock, Home } from 'lucide-react';
 import type { Case } from '@/types';
 import { formatDate, formatDateTime } from '@/lib/utils/formatters';
 
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-ymUxE3zXYmZyS5wPoEXjK8yFjDpuVa67A8AupTyYV0lv18RDU7P1aVV-7KiORoic/exec';
+
 const TRACK_STEPS = [
   { key: 'sent_at',          label: '패스트트랙 신청',       desc: '하나은행 지점 전송' },
   { key: 'assigned_at',      label: '검토 중',               desc: '노무사 배정 완료' },
@@ -19,12 +21,23 @@ const TRACK_STEPS = [
   { key: 'completed_at',     label: '노동지청 심사',          desc: '패스트트랙 처리 완료' },
 ] as const;
 
+// 스프레드시트 F열 상태 → 완료된 단계 목록 (Supabase 상태값도 포함)
+const STATUS_DONE_KEYS: Record<string, string[]> = {
+  '검토대기':            ['sent_at'],
+  '신청서 접수/FAX발송':   ['sent_at', 'assigned_at', 'fax_submitted_at'],
+  '신청서 접수/FAX 발송':  ['sent_at', 'assigned_at', 'fax_submitted_at'],
+  '노동지청 심사':         ['sent_at', 'assigned_at', 'fax_submitted_at', 'completed_at'],
+  '팩스제출':              ['sent_at', 'assigned_at', 'fax_submitted_at'],
+  '신고완료':              ['sent_at', 'assigned_at', 'fax_submitted_at', 'completed_at'],
+};
+
 export default function TrackPage() {
   const supabase = createClient();
-  const [bizNo,  setBizNo]  = useState('');
-  const [pin,    setPin]    = useState('');
-  const [result, setResult] = useState<Case | null>(null);
-  const [searching, setSearching] = useState(false);
+  const [bizNo,       setBizNo]       = useState('');
+  const [pin,         setPin]         = useState('');
+  const [result,      setResult]      = useState<Case | null>(null);
+  const [sheetStatus, setSheetStatus] = useState<string>('');
+  const [searching,   setSearching]   = useState(false);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +47,7 @@ export default function TrackPage() {
       return;
     }
     setSearching(true);
+    setSheetStatus('');
     try {
       const { data, error } = await supabase
         .from('cases')
@@ -49,6 +63,29 @@ export default function TrackPage() {
         return;
       }
       setResult(data as Case);
+
+      // 스프레드시트에서 실시간 상태 조회
+      try {
+        const sheetRes  = await fetch(SCRIPT_URL, { cache: 'no-store' });
+        const text = await sheetRes.text();
+        let sheetJson: { ok: boolean; data?: { biz_reg_no: string; status: string }[] };
+        try {
+          sheetJson = JSON.parse(text);
+        } catch {
+          console.warn('[track] 스프레드시트 응답이 JSON이 아님:', text.slice(0, 100));
+          return;
+        }
+        if (sheetJson.ok && Array.isArray(sheetJson.data)) {
+          const normalize = (v: string) => v.replace(/-/g, '');
+          const row = sheetJson.data.find((r) => normalize(r.biz_reg_no) === normalize(bizNo));
+          if (row?.status) {
+            console.log('[track] 스프레드시트 상태:', row.status);
+            setSheetStatus(row.status);
+          }
+        }
+      } catch (err) {
+        console.warn('[track] 스프레드시트 조회 실패:', err);
+      }
     } finally {
       setSearching(false);
     }
@@ -111,14 +148,18 @@ export default function TrackPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{result.company_name}</CardTitle>
               <p className="text-xs text-gray-500">{result.biz_reg_no} · {result.pension_type === 'DB' ? '확정급여형(DB)' : '확정기여형(DC)'}</p>
+              <p className="text-xs text-blue-500">
+                [디버그] 시트상태: {sheetStatus || '(없음)'} / DB상태: {result.status || '(없음)'}
+              </p>
             </CardHeader>
             <CardContent>
               {/* 4단계 트래커 */}
               <div className="space-y-4">
                 {TRACK_STEPS.map(({ key, label, desc }, idx) => {
-                  const dateVal = result[key as keyof Case] as string | undefined;
-                  const isDone  = !!dateVal;
-                  const isNext  = !isDone && idx === TRACK_STEPS.findIndex((s) => !result[s.key as keyof Case]);
+                  const doneKeys = STATUS_DONE_KEYS[sheetStatus] ?? STATUS_DONE_KEYS[result.status ?? '검토대기'] ?? ['sent_at'];
+                  const dateVal  = result[key as keyof Case] as string | undefined;
+                  const isDone   = doneKeys.includes(key) || !!dateVal;
+                  const isNext   = !isDone && idx === TRACK_STEPS.findIndex((s) => !doneKeys.includes(s.key) && !result[s.key as keyof Case]);
 
                   return (
                     <div key={key} className="flex items-start gap-3">

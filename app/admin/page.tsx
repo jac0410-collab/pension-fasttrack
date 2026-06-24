@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { Home, Lock, FileText, Clock, CheckCircle, TrendingUp, Building2, RefreshCw } from 'lucide-react';
 import type { SheetRow } from '@/app/api/sheet-data/route';
 
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-ymUxE3zXYmZyS5wPoEXjK8yFjDpuVa67A8AupTyYV0lv18RDU7P1aVV-7KiORoic/exec';
+
 const ADMIN_PASSWORD = '6293';
 const PRICE_PER_CASE = 30000;
 
@@ -99,8 +101,16 @@ export default function AdminPage() {
     setLoading(true);
     setError('');
     try {
-      const res  = await fetch('/api/sheet-data', { cache: 'no-store' });
-      const json = await res.json();
+      const res  = await fetch(SCRIPT_URL, { cache: 'no-store' });
+      const text = await res.text();
+      let json: { ok: boolean; data?: SheetRow[]; error?: string };
+      try {
+        json = JSON.parse(text);
+      } catch {
+        console.error('[admin] Apps Script 응답 (JSON 아님):', text.slice(0, 200));
+        setError('Apps Script가 JSON을 반환하지 않았습니다. 배포 설정을 확인하세요.');
+        return;
+      }
       if (json.ok) {
         setRows(json.data ?? []);
       } else {
@@ -161,8 +171,12 @@ export default function AdminPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-            {error} — Apps Script 배포 설정을 확인해주세요.
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 space-y-1">
+            <p className="font-semibold">데이터 로드 오류</p>
+            <p>{error}</p>
+            <p className="text-xs text-red-500 mt-1">
+              Apps Script 배포 설정에서 액세스 권한을 <strong>「모든 사용자(익명 포함)」</strong>으로 변경 후 새 버전 배포가 필요합니다.
+            </p>
           </div>
         )}
 

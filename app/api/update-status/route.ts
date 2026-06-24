@@ -6,7 +6,7 @@ const WEBHOOK_SECRET = 'pension-fasttrack-2026';
 // 스프레드시트 F열 값 → Supabase 업데이트 필드 매핑
 function getUpdates(sheetStatus: string): Record<string, string> | null {
   const now = new Date().toISOString();
-  if (sheetStatus === '신청서 접수/FAX발송') {
+  if (sheetStatus === '신청서 접수/FAX발송' || sheetStatus === '신청서 접수/FAX 발송') {
     return { fax_submitted_at: now, status: '팩스제출' };
   }
   if (sheetStatus === '노동지청 심사') {
