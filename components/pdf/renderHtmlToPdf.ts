@@ -1,14 +1,8 @@
 'use client';
 
-/**
- * HTML 문자열 → jsPDF Blob
- * iframe 안에서 렌더링해 Tailwind lab() 색상 오류를 회피합니다.
- */
-export async function renderHtmlToPdf(html: string): Promise<Blob> {
-  const { jsPDF } = await import('jspdf');
+async function htmlToCanvas(html: string): Promise<HTMLCanvasElement> {
   const html2canvas = (await import('html2canvas')).default;
 
-  // iframe을 화면 밖에 생성 (페이지 CSS 완전 격리)
   const iframe = document.createElement('iframe');
   iframe.style.cssText =
     'position:absolute;left:-9999px;top:0;width:794px;height:1200px;border:none;visibility:hidden;';
@@ -19,16 +13,14 @@ export async function renderHtmlToPdf(html: string): Promise<Blob> {
   iDoc.write(html);
   iDoc.close();
 
-  // Google Fonts + 레이아웃 완료 대기
   await new Promise<void>((resolve) => {
     iframe.onload = () => resolve();
-    setTimeout(resolve, 1500); // onload가 이미 fired된 경우 fallback
+    setTimeout(resolve, 1500);
   });
   await iDoc.fonts.ready;
   await new Promise((r) => setTimeout(r, 300));
 
-  const body = iDoc.body;
-  const canvas = await html2canvas(body, {
+  const canvas = await html2canvas(iDoc.body, {
     scale: 2,
     useCORS: true,
     allowTaint: true,
@@ -38,19 +30,26 @@ export async function renderHtmlToPdf(html: string): Promise<Blob> {
   });
 
   document.body.removeChild(iframe);
+  return canvas;
+}
 
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+function addCanvasToDoc(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  doc: any,
+  canvas: HTMLCanvasElement,
+  isFirstDoc: boolean,
+) {
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const pxPerMm = canvas.width / pageW;
   const pageHeightPx = pageH * pxPerMm;
 
   let yOffset = 0;
-  let firstPage = true;
+  let firstSlice = isFirstDoc;
 
   while (yOffset < canvas.height) {
-    if (!firstPage) doc.addPage();
-    firstPage = false;
+    if (!firstSlice) doc.addPage();
+    firstSlice = false;
 
     const sliceH = Math.min(pageHeightPx, canvas.height - yOffset);
     const sliceCanvas = document.createElement('canvas');
@@ -67,6 +66,26 @@ export async function renderHtmlToPdf(html: string): Promise<Blob> {
     );
     yOffset += sliceH;
   }
+}
 
+/** 단일 HTML → PDF Blob (Tailwind lab() 오류 방지용 iframe 격리) */
+export async function renderHtmlToPdf(html: string): Promise<Blob> {
+  const { jsPDF } = await import('jspdf');
+  const canvas = await htmlToCanvas(html);
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  addCanvasToDoc(doc, canvas, true);
+  return doc.output('blob');
+}
+
+/** 여러 HTML 문서 → 하나의 PDF Blob (문서 순서대로 페이지 이어붙임) */
+export async function renderMultipleHtmlToPdf(htmlList: string[]): Promise<Blob> {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  let isFirst = true;
+  for (const html of htmlList) {
+    const canvas = await htmlToCanvas(html);
+    addCanvasToDoc(doc, canvas, isFirst);
+    isFirst = false;
+  }
   return doc.output('blob');
 }

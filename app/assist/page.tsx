@@ -14,8 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, FileDown, Loader2, Home } from 'lucide-react';
-import { generateReportPDF } from '@/components/pdf/generateReport';
-import { generateRegulationPDF } from '@/components/pdf/generateRegulation';
+import { generateCombinedPDF } from '@/components/pdf/generateCombined';
 import type { Case } from '@/types';
 
 const STEPS = ['사업장 정보', '제도 구분값', '추가정보'];
@@ -57,12 +56,9 @@ export default function AssistPage() {
     try {
       const caseData = { ...values, id: `C${Date.now()}`, status: '검토대기', delay_flag: false, settled: false, worker_rep_consent: values.worker_rep_consent ?? false, sent_at: new Date().toISOString() } as unknown as Case;
 
-      const [reportBlob, regulationBlob] = await Promise.all([
-        generateReportPDF(caseData),
-        generateRegulationPDF(caseData),
-      ]);
+      const combinedBlob = await generateCombinedPDF(caseData);
 
-      // 브라우저 다운로드
+      // 브라우저 다운로드 (신고서 + 규약 통합 1파일)
       const dl = (blob: Blob, name: string) => {
         const url = URL.createObjectURL(blob);
         const a   = document.createElement('a');
@@ -72,12 +68,10 @@ export default function AssistPage() {
         URL.revokeObjectURL(url);
       };
 
-      dl(reportBlob,     `신고서_${values.company_name}.pdf`);
-      await new Promise((r) => setTimeout(r, 300));
-      dl(regulationBlob, `규약_${values.company_name}.pdf`);
+      dl(combinedBlob, `퇴직연금규약_${values.company_name}.pdf`);
 
       setDone(true);
-      toast.success('PDF 2건이 다운로드되었습니다.');
+      toast.success('PDF가 다운로드되었습니다. (신고서 + 규약 통합)');
     } catch (err: any) {
       toast.error(err.message ?? 'PDF 생성 실패');
     } finally {
@@ -157,7 +151,7 @@ export default function AssistPage() {
 
         {done && (
           <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-xl text-sm text-teal-800">
-            ✓ 규약 PDF와 신고서 PDF가 다운로드되었습니다.<br />
+            ✓ 신고서 + 규약이 하나의 PDF로 다운로드되었습니다.<br />
             패스트트랙 서비스를 이용하시려면{' '}
             <Link href="/apply" className="font-semibold underline">패스트트랙 신청</Link>
             으로 이동하세요.

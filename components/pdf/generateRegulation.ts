@@ -3,7 +3,7 @@ import type { Case } from '@/types';
 import { generateRegulation } from '@/lib/regulation/generator';
 import { renderHtmlToPdf } from './renderHtmlToPdf';
 
-function buildRegulationHTML(text: string): string {
+export function buildRegulationHTML(text: string, signatureData?: string): string {
   const lines = text.split('\n');
   const html = lines.map((line) => {
     if (!line.trim()) return '<br>';
@@ -19,12 +19,17 @@ function buildRegulationHTML(text: string): string {
     if (/^부\s*칙/.test(line.trim())) {
       return `<p class="chapter">${line}</p>`;
     }
-    // 제목 (규약명, 제정)
-    if (line.includes('퇴직연금제도 규약') && !line.includes('제')) {
+    // 규약명 제목
+    if ((line.includes('확정급여형퇴직연금제도 규약') || line.includes('확정기여형퇴직연금제도 규약')) && !line.startsWith('이')) {
       return `<p class="title">${line}</p>`;
     }
     if (line.startsWith('제정')) {
       return `<p class="subtitle">${line}</p>`;
+    }
+    // 대표자 서명란
+    if (line.startsWith('대표자 :') && signatureData) {
+      const nameOnly = line.replace(/\(인\)\s*$/, '').trimEnd();
+      return `<p class="body">${nameOnly}&nbsp;<img src="${signatureData}" style="width:28mm;height:12mm;object-fit:contain;vertical-align:middle;display:inline-block;" /></p>`;
     }
     return `<p class="body">${line}</p>`;
   }).join('\n');
@@ -87,5 +92,5 @@ export async function generateRegulationPDF(data: Case): Promise<Blob> {
     note:               data.note,
   });
 
-  return renderHtmlToPdf(buildRegulationHTML(text));
+  return renderHtmlToPdf(buildRegulationHTML(text, data.signature_data));
 }

@@ -3,7 +3,7 @@ import type { Case } from '@/types';
 import { formatDate } from '@/lib/utils/formatters';
 import { renderHtmlToPdf } from './renderHtmlToPdf';
 
-function buildReportHTML(data: Case): string {
+export function buildReportHTML(data: Case): string {
   const typeCheck = (t: string) =>
     data.pension_type === t ? '☑' : '☐';
 
@@ -112,7 +112,7 @@ function buildReportHTML(data: Case): string {
 <div class="sig-section">
   <p>「근로자퇴직급여 보장법」 제13조·제19조 및 같은 법 시행규칙 제2조에 따라 위와 같이 퇴직연금규약을 신고(신규 / 변경)합니다.</p>
   <p style="margin-top:4mm; text-align:right;">${dateStr}</p>
-  <p style="text-align:right; margin-top:2mm;">신고인(사업장 대표)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${data.ceo_name}&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</p>
+  <p style="text-align:right; margin-top:2mm; line-height:1;">신고인(사업장 대표)&nbsp;&nbsp;&nbsp;${data.ceo_name}&nbsp;&nbsp;&nbsp;${data.signature_data ? `<img src="${data.signature_data}" style="width:28mm;height:12mm;object-fit:contain;vertical-align:middle;display:inline-block;" />` : '(서명 또는 인)'}</p>
   <p style="margin-top:3mm;">( ${data.labor_office ?? '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'} )지방고용노동청장(지청장) 귀하</p>
 </div>
 
