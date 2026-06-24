@@ -148,9 +148,6 @@ export default function TrackPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{result.company_name}</CardTitle>
               <p className="text-xs text-gray-500">{result.biz_reg_no} · {result.pension_type === 'DB' ? '확정급여형(DB)' : '확정기여형(DC)'}</p>
-              <p className="text-xs text-blue-500">
-                [디버그] 시트상태: {sheetStatus || '(없음)'} / DB상태: {result.status || '(없음)'}
-              </p>
             </CardHeader>
             <CardContent>
               {/* 4단계 트래커 */}
