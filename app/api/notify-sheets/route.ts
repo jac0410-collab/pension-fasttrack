@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SHEETS_URL = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+const SHEETS_URL =
+  process.env.GOOGLE_SHEETS_WEBHOOK_URL ||
+  'https://script.google.com/macros/s/AKfycbw-ymUxE3zXYmZyS5wPoEXjK8yFjDpuVa67A8AupTyYV0lv18RDU7P1aVV-7KiORoic/exec';
 
 export async function POST(req: NextRequest) {
   if (!SHEETS_URL) {
