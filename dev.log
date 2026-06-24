@@ -39,3 +39,23 @@
  GET /apply 200 in 46ms (next.js: 7ms, proxy.ts: 7ms, application-code: 31ms)
  GET /assist 200 in 688ms (next.js: 296ms, proxy.ts: 5ms, application-code: 387ms)
  GET /track 200 in 60ms (next.js: 23ms, proxy.ts: 6ms, application-code: 30ms)
+
+<--- Last few GCs --->
+
+[7920:0000020D4D19D000]  2526083 ms: Scavenge (interleaved) 7083.8 (7101.1) -> 7080.3 (7103.6) MB, pooled: 0 MB, 20.13 / 0.00 ms  (average mu = 0.177, current mu = 0.119) allocation failure; 
+[7920:0000020D4D19D000]  2531489 ms: Mark-Compact (reduce) 7081.1 (7103.8) -> 7060.8 (7080.1) MB, pooled: 0 MB, 5164.90 / 15.81 ms  (+ 54.7 ms in 11 steps since start of marking, biggest step 5.0 ms, walltime since start of marking 5236 ms) (average mu = 
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF6E9CA0E3F node::OnFatalError+1343
+ 2: 00007FF6EA8EF877 v8::Function::NewInstance+423
+ 3: 00007FF6EA6F02A7 v8::base::AddressSpaceReservation::AddressSpaceReservation+322071
+ 4: 00007FF6EA6F3FB4 v8::base::AddressSpaceReservation::AddressSpaceReservation+337700
+ 5: 00007FF6EA702F0C v8::internal::StrongRootAllocatorBase::deallocate_impl+16604
+ 6: 00007FF6EA70274B v8::internal::StrongRootAllocatorBase::deallocate_impl+14619
+ 7: 00007FF6EBB8F9AD v8::base::UnsignedDivisionByConstant<unsigned __int64>+2794669
+ 8: 00007FF6EA6EDD70 v8::base::AddressSpaceReservation::AddressSpaceReservation+312544
+ 9: 00007FF6EA771AA9 v8::Unlocker::~Unlocker+9273
+10: 00007FF6EA2E6438 v8::String::Value::~Value+143384
+11: 0000020D1FE775FA 
+[?25h
