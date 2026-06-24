@@ -3,7 +3,6 @@ import { type UseFormReturn } from 'react-hook-form';
 import type { CaseFormValues } from '@/lib/utils/validators';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SignatureCanvas } from './SignatureCanvas';
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,8 +11,7 @@ interface Props {
 }
 
 export function Section3Additional({ form }: Props) {
-  const { register, setValue, watch } = form;
-  const signatureData = watch('signature_data');
+  const { register } = form;
 
   return (
     <div className="space-y-5">
@@ -36,18 +34,6 @@ export function Section3Additional({ form }: Props) {
         <Field label="관할 지방고용노동청(지청)">
           <Input placeholder="예: 서울지방고용노동청" {...register('labor_office')} />
         </Field>
-      </div>
-
-      {/* 서명 */}
-      <div className="space-y-2 pt-2 border-t">
-        <Label className="text-sm font-semibold text-[#0D2433]">
-          대표자 서명 <span className="text-gray-400 font-normal">(선택 — PDF 서명란에 자동 삽입)</span>
-        </Label>
-        <p className="text-xs text-gray-500">아래 흰 칸에 마우스(또는 손가락)로 서명하세요.</p>
-        <SignatureCanvas
-          value={signatureData}
-          onChange={(data) => setValue('signature_data', data)}
-        />
       </div>
     </div>
   );
