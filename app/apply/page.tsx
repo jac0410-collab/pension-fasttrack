@@ -134,6 +134,24 @@ export default function ApplyPage() {
       });
       if (error) throw error;
 
+      // 구글 스프레드시트 전송 (실패해도 신청은 완료)
+      fetch('/api/notify-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          company_name:     companyName,
+          biz_reg_no:       bizRegNo,
+          ceo_name:         repName,
+          ceo_phone:        repPhone,
+          doc_biz_reg_path: files.biz_reg?.path ?? '',
+          doc_consent_path: files.consent?.path ?? '',
+          doc_report_path:  files.report?.path ?? '',
+          status:           '검토대기',
+          sent_at:          new Date().toLocaleString('ko-KR'),
+        }),
+      }).catch(() => {/* 스프레드시트 오류는 무시 */});
+
       setCaseId(id);
       toast.success('신청이 접수되었습니다!');
     } catch (err: any) {
