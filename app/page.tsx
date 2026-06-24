@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FileText, Send, Search } from 'lucide-react';
+import { FileText, Send, Search, Settings } from 'lucide-react';
 
 const MENU = [
   {
@@ -31,6 +31,14 @@ const MENU = [
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0D2433] flex flex-col">
+      {/* 우측 상단 관리자 버튼 */}
+      <div className="absolute top-4 right-4">
+        <Link href="/admin" className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/80 transition-colors">
+          <Settings className="w-3.5 h-3.5" />
+          관리자 페이지
+        </Link>
+      </div>
+
       {/* 헤더 */}
       <header className="pt-12 pb-8 text-center px-4">
         <div className="inline-flex items-center gap-3 bg-white/10 rounded-2xl px-6 py-3 mb-6">
