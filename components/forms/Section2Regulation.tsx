@@ -44,7 +44,6 @@ export function Section2Regulation({ form }: Props) {
   const includeExec      = watch('include_executives');
   const coveragePeriod   = watch('coverage_period');
   const workerRepType    = watch('worker_rep_type');
-  const workerRepConsent = watch('worker_rep_consent');
 
   function addProvider(p: string | null) {
     if (p && !providers.includes(p)) setValue('providers', [...providers, p]);
@@ -223,20 +222,6 @@ export function Section2Regulation({ form }: Props) {
         </Section>
       )}
 
-      {/* 노측대표 유선 동의 체크박스 */}
-      <div className={`border-2 rounded-lg p-4 ${workerRepConsent ? 'border-teal-400 bg-teal-50' : 'border-amber-300 bg-amber-50'}`}>
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            className="mt-0.5 w-4 h-4 accent-teal-600"
-            checked={workerRepConsent}
-            onChange={(e) => setValue('worker_rep_consent', e.target.checked)}
-          />
-          <span className="text-sm font-medium text-gray-800">
-            대표자 또는 근로자대표와 유선 통화하여 퇴직연금 규약 도입 및 내용에 대한 동의를 확인하였습니다.
-          </span>
-        </label>
-      </div>
     </div>
   );
 }

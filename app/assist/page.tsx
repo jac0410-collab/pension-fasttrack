@@ -43,10 +43,6 @@ export default function AssistPage() {
   });
 
   function handleNext() {
-    if (step === 1 && !form.getValues('worker_rep_consent')) {
-      toast.warning('유선 동의 확인 체크박스를 선택해주세요.');
-      return;
-    }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
 
